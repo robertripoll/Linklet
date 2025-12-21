@@ -1,0 +1,15 @@
+.git
+.vscode
+.devcontainer
+bin
+dist
+*.exe
+*.test
+vendor
+visits.jsonl
+urls.json
+.env
+docker-compose.yml
+Dockerfile
+.gitignore
+linklet

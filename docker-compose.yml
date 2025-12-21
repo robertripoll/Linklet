@@ -1,0 +1,15 @@
+services:
+  linklet:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - DATA_FILE=/app/urls.json
+      - VISITS_FILE=/app/visits.jsonl
+      # Uncomment if you have a GeoIP database
+      # - GEOIP_FILE=/app/geoip.mmdb
+    volumes:
+      - ./urls.json:/app/urls.json
+      - ./visits.jsonl:/app/visits.jsonl
+    restart: always
