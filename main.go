@@ -63,6 +63,9 @@ func main() {
 			tracker.Record(r, slug)
 			http.Redirect(w, r, url, http.StatusFound)
 			return
+		} else if slug == "" {
+			w.WriteHeader(http.StatusOK)
+			return
 		}
 
 		logger.Warn("Slug not found", "slug", slug)
