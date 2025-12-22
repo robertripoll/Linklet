@@ -1,14 +1,16 @@
 services:
   linklet:
     build: .
+    container_name: linklet
+    hostname: linklet
     ports:
-      - "8080:8080"
+      - "8002:8080"
+    env_file:
+      - .env
     environment:
       - PORT=8080
       - DATA_FILE=/app/urls.json
       - VISITS_FILE=/app/visits.jsonl
-      # Uncomment if you have a GeoIP database
-      # - GEOIP_FILE=/app/geoip.mmdb
     volumes:
       - ./urls.json:/app/urls.json
       - ./visits.jsonl:/app/visits.jsonl
