@@ -64,7 +64,11 @@ func main() {
 			http.Redirect(w, r, url, http.StatusFound)
 			return
 		} else if slug == "" {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.WriteHeader(http.StatusOK)
+			if _, err := w.Write([]byte("<!DOCTYPE html><html><head></head><body></body></html>")); err != nil {
+				logger.Error("Error writing response", "error", err)
+			}
 			return
 		}
 
