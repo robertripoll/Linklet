@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"sync"
 )
@@ -23,20 +24,24 @@ var (
 func GetConfig() *Config {
 	once.Do(func() {
 		instance = &Config{
-			Port:       getEnv("PORT"),
-			DataFile:   "urls.json",
-			VisitsFile: "visits.jsonl",
-			GeoIPAccountID:  getEnv("GEOIP_ACCOUNT_ID"),
-			GeoIPLicenseKey: getEnv("GEOIP_LICENSE_KEY"),
+			Port:            getEnv("PORT", "8080"),
+			DataFile:        "urls.json",
+			VisitsFile:      "visits.jsonl",
+			GeoIPAccountID:  os.Getenv("GEOIP_ACCOUNT_ID"),
+			GeoIPLicenseKey: os.Getenv("GEOIP_LICENSE_KEY"),
 		}
 	})
 	return instance
 }
 
-// getEnv retrieves an environment variable or returns a default value.
-func getEnv(key string) (string) {
+// getEnv returns the value of key, falling back to def. Exits if key is unset and def is empty.
+func getEnv(key, def string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}
-	panic("Environment variable not defined: " + key)
+	if def != "" {
+		return def
+	}
+	log.Fatalf("required environment variable %q is not set", key)
+	return ""
 }
