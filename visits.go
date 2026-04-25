@@ -71,6 +71,9 @@ func (t *VisitTracker) worker() {
 	defer t.wg.Done()
 	encoder := json.NewEncoder(t.file)
 	for v := range t.ch {
+		if t.geoip != nil {
+			v.Country, v.City = t.geoip.Lookup(v.IP)
+		}
 		if err := encoder.Encode(v); err != nil {
 			t.logger.Error("Failed to write visit", "error", err)
 		}
@@ -81,17 +84,11 @@ func (t *VisitTracker) worker() {
 func (t *VisitTracker) Record(r *http.Request, slug string) {
 	uaStr := r.UserAgent()
 	ua := useragent.Parse(uaStr)
-	ip := getRealIP(r)
-
-	var country, city string
-	if t.geoip != nil {
-		country, city = t.geoip.Lookup(ip)
-	}
 
 	v := Visit{
 		Time:        time.Now(),
 		Slug:        slug,
-		IP:          ip,
+		IP:          getRealIP(r),
 		UserAgent:   uaStr,
 		Referer:     r.Referer(),
 		QueryParams: r.URL.RawQuery,
@@ -102,8 +99,6 @@ func (t *VisitTracker) Record(r *http.Request, slug string) {
 		OS:          ua.OS,
 		OSVer:       ua.OSVersion,
 		IsBot:       ua.Bot,
-		Country:     country,
-		City:        city,
 	}
 
 	select {
