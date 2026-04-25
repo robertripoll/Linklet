@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -74,6 +75,22 @@ func (s *URLStore) Watch(ctx context.Context, filename string, interval time.Dur
 			}
 		}
 	}
+}
+
+const maxSlugLen = 64
+
+// isValidSlug reports whether slug contains only allowed characters and is within length.
+// Allowed: a-z, A-Z, 0-9, hyphen, underscore.
+func isValidSlug(slug string) bool {
+	if len(slug) > maxSlugLen {
+		return false
+	}
+	return strings.IndexFunc(slug, func(r rune) bool {
+		return !(r >= 'a' && r <= 'z') &&
+			!(r >= 'A' && r <= 'Z') &&
+			!(r >= '0' && r <= '9') &&
+			r != '-' && r != '_'
+	}) == -1
 }
 
 // Get retrieves a URL by its slug.

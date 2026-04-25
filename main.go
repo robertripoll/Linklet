@@ -54,6 +54,11 @@ func main() {
 
 		slug := r.URL.Path[1:]
 
+		if slug != "" && !isValidSlug(slug) {
+			http.Error(w, "Invalid slug", http.StatusBadRequest)
+			return
+		}
+
 		if url, ok := store.Get(slug); ok {
 			// Security: Prevent XSS by ensuring the URL scheme is http or https
 			// This prevents "javascript:" or "data:" URIs from being executed via redirect.
