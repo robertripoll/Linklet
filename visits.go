@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -111,12 +112,21 @@ func (t *VisitTracker) Record(r *http.Request, slug string) {
 func getRealIP(r *http.Request) string {
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 		parts := strings.Split(xff, ",")
-		return strings.TrimSpace(parts[0])
+		ip := strings.TrimSpace(parts[0])
+		if net.ParseIP(ip) != nil {
+			return ip
+		}
 	}
 	if xrip := r.Header.Get("X-Real-IP"); xrip != "" {
-		return xrip
+		if net.ParseIP(xrip) != nil {
+			return xrip
+		}
 	}
-	return r.RemoteAddr
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
 
 func getDeviceType(ua useragent.UserAgent) string {

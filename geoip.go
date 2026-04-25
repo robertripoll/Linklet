@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 )
@@ -41,6 +42,9 @@ type maxMindResponse struct {
 // Lookup returns the country and city for a given IP address.
 func (s *GeoIPService) Lookup(ipStr string) (country, city string) {
 	if ipStr == "" {
+		return "", ""
+	}
+	if net.ParseIP(ipStr) == nil {
 		return "", ""
 	}
 
