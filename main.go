@@ -76,9 +76,11 @@ func main() {
 		http.NotFound(w, r)
 	})
 
+	limiter := NewRateLimiter(1, 10, 1*time.Hour)
+
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
-		Handler:      mux,
+		Handler:      limiter.Middleware(mux),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
