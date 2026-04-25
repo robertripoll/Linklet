@@ -77,7 +77,7 @@ func main() {
 			return
 		}
 
-		logger.Warn("Slug not found", "slug", slug)
+		logger.Debug("Slug not found", "slug", slug)
 		http.NotFound(w, r)
 	})
 
