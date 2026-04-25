@@ -23,6 +23,10 @@ func main() {
 		logger.Error("Error loading URLs", "error", err)
 	}
 
+	watchCtx, watchCancel := context.WithCancel(context.Background())
+	defer watchCancel()
+	go store.Watch(watchCtx, cfg.DataFile, 2*time.Second)
+
 	geoip, err := NewGeoIPService()
 	if err != nil {
 		logger.Warn("Could not initialize GeoIP service", "error", err)
