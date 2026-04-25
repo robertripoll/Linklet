@@ -1,6 +1,7 @@
 services:
   linklet:
-    build: .
+    #build: .
+    image: ghcr.io/robertripoll/linklet
     container_name: linklet
     hostname: linklet
     ports:
