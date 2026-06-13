@@ -109,19 +109,22 @@ func (t *VisitTracker) Record(r *http.Request, slug string) {
 	}
 }
 
+// getRealIP returns the connecting client's IP address.
+//
+// The service runs exclusively behind a Cloudflare Tunnel, with no port
+// reachable except through the tunnel. Cloudflare overwrites CF-Connecting-IP
+// on every request with the real client address, so it is the only trustworthy
+// source here. Client-supplied forwarding headers (X-Forwarded-For, X-Real-IP)
+// are intentionally NOT trusted: Cloudflare does not strip them, so an attacker
+// could forge them to spoof their identity and bypass the per-IP rate limiter.
 func getRealIP(r *http.Request) string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		parts := strings.Split(xff, ",")
-		ip := strings.TrimSpace(parts[0])
+	if ip := strings.TrimSpace(r.Header.Get("CF-Connecting-IP")); ip != "" {
 		if net.ParseIP(ip) != nil {
 			return ip
 		}
 	}
-	if xrip := r.Header.Get("X-Real-IP"); xrip != "" {
-		if net.ParseIP(xrip) != nil {
-			return xrip
-		}
-	}
+	// Fallback: should not occur behind the tunnel, but avoids an empty key
+	// (which would collapse all such traffic into a single rate-limit bucket).
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr
