@@ -31,13 +31,23 @@ type Visit struct {
 	City        string    `json:"city"`
 }
 
+const (
+	// visitQueueSize bounds each buffered channel in the visit pipeline
+	// (ingest -> GeoIP resolution -> file write).
+	visitQueueSize = 100
+	// geoIPWorkerCount is the number of concurrent GeoIP resolver goroutines.
+	geoIPWorkerCount = 4
+)
+
 // VisitTracker handles recording visit statistics.
 type VisitTracker struct {
-	file   *os.File
-	geoip  *GeoIPService
-	logger *Logger
-	ch     chan Visit
-	wg     sync.WaitGroup
+	file     *os.File
+	geoip    *GeoIPService
+	logger   *Logger
+	ch       chan Visit     // ingest -> GeoIP resolvers
+	writeCh  chan Visit     // resolvers -> file writer
+	wg       sync.WaitGroup // GeoIP resolvers
+	writerWg sync.WaitGroup // file writer
 }
 
 // NewVisitTracker creates a new instance of VisitTracker.
@@ -49,32 +59,58 @@ func NewVisitTracker(geoip *GeoIPService) (*VisitTracker, error) {
 	}
 
 	t := &VisitTracker{
-		file:   f,
-		geoip:  geoip,
-		logger: GetLogger(),
-		ch:     make(chan Visit, 100),
+		file:    f,
+		geoip:   geoip,
+		logger:  GetLogger(),
+		ch:      make(chan Visit, visitQueueSize),
+		writeCh: make(chan Visit, visitQueueSize),
 	}
 
-	t.wg.Add(1)
-	go t.worker()
+	t.writerWg.Add(1)
+	go t.writer()
+
+	// Resolve GeoIP concurrently so a slow lookup (network-bound, up to the
+	// HTTP client timeout) cannot stall the file writer or back up the ingest
+	// queue. Without GeoIP there is nothing to resolve, so a single passthrough
+	// goroutine suffices.
+	resolvers := 1
+	if geoip != nil {
+		resolvers = geoIPWorkerCount
+	}
+	t.wg.Add(resolvers)
+	for i := 0; i < resolvers; i++ {
+		go t.resolver()
+	}
 
 	return t, nil
 }
 
-// Close closes the visit channel and the underlying file.
+// Close drains the visit pipeline and closes the underlying file.
 func (t *VisitTracker) Close() error {
 	close(t.ch)
-	t.wg.Wait()
+	t.wg.Wait() // resolvers have drained ch and finished sending to writeCh
+	close(t.writeCh)
+	t.writerWg.Wait()
 	return t.file.Close()
 }
 
-func (t *VisitTracker) worker() {
+// resolver enriches visits with GeoIP data and forwards them to the writer.
+// Multiple resolvers run concurrently so network latency is not serialized.
+func (t *VisitTracker) resolver() {
 	defer t.wg.Done()
-	encoder := json.NewEncoder(t.file)
 	for v := range t.ch {
 		if t.geoip != nil {
 			v.Country, v.City = t.geoip.Lookup(v.IP)
 		}
+		t.writeCh <- v
+	}
+}
+
+// writer is the sole owner of the visits file, serializing all writes.
+func (t *VisitTracker) writer() {
+	defer t.writerWg.Done()
+	encoder := json.NewEncoder(t.file)
+	for v := range t.writeCh {
 		if err := encoder.Encode(v); err != nil {
 			t.logger.Error("Failed to write visit", "error", err)
 		}
