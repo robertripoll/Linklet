@@ -5,7 +5,7 @@ services:
     container_name: linklet
     hostname: linklet
     ports:
-      - "8002:8080"
+      - "127.0.0.1:8002:8080"
     env_file:
       - .env
     environment:
