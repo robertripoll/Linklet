@@ -13,3 +13,4 @@ docker-compose.yml
 Dockerfile
 .gitignore
 linklet
+blacklist.txt

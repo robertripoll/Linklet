@@ -11,6 +11,7 @@ type Config struct {
 	Port       string
 	DataFile   string
 	VisitsFile string
+	BlacklistFile string
 	GeoIPAccountID  string
 	GeoIPLicenseKey string
 }
@@ -27,6 +28,7 @@ func GetConfig() *Config {
 			Port:            getEnv("PORT", "8080"),
 			DataFile:        "urls.json",
 			VisitsFile:      "visits.jsonl",
+			BlacklistFile:   "blacklist.txt",
 			GeoIPAccountID:  os.Getenv("GEOIP_ACCOUNT_ID"),
 			GeoIPLicenseKey: os.Getenv("GEOIP_LICENSE_KEY"),
 		}

@@ -27,6 +27,12 @@ func main() {
 	defer watchCancel()
 	go store.Watch(watchCtx, cfg.DataFile, 2*time.Second)
 
+	blacklist := NewIPBlacklist()
+	if err := blacklist.Load(cfg.BlacklistFile); err != nil {
+		logger.Error("Error loading IP blacklist", "error", err)
+	}
+	go blacklist.Watch(watchCtx, cfg.BlacklistFile, 2*time.Second)
+
 	geoip, err := NewGeoIPService()
 	if err != nil {
 		logger.Warn("Could not initialize GeoIP service", "error", err)
@@ -89,7 +95,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
-		Handler:      limiter.Middleware(mux),
+		Handler:      blacklist.Middleware(limiter.Middleware(mux)),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,

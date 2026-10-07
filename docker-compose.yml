@@ -15,4 +15,5 @@ services:
     volumes:
       - ./urls.json:/app/urls.json
       - ./visits.jsonl:/app/visits.jsonl
+      - ./blacklist.txt:/app/blacklist.txt
     restart: always
